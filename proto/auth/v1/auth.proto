@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package auth.v1;
+option go_package = "github.com/hassiimykyta/life-rpg/services/auth/v1;authv1";
+
+
+message RegisterRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message LoginRequest {
+  oneof subject {
+    string email    = 1;
+    string username = 2;
+    string user_id  = 3;
+  }
+  string password = 4;
+}
+
+message LoginResponse {
+  string user_id       = 1;
+
+}
+
+message CheckAvailabilityRequest {
+  string email    = 1; 
+  string username = 2; 
+}
+
+message CheckAvailabilityResponse {
+  bool email_available    = 1;
+  bool username_available = 2;
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+}
+
+
+message ResolveRequest {
+  oneof key {
+    string email    = 1;
+    string username = 2;
+    string user_id = 3;
+  }
+}
+message ResolveResponse {
+  string user_id  = 1;
+  string email    = 2;
+  string username = 3;
+}
+
+service AuthService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+
+  rpc Login (LoginRequest) returns (LoginResponse);
+
+  rpc CheckAvailability (CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+
+  rpc Resolve (ResolveRequest) returns (ResolveResponse);
+
+}

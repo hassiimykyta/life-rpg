@@ -1,0 +1,66 @@
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Go ---
+# Модули и кеши (локальные)
+bin/
+dist/
+build/
+coverage/
+*.coverprofile
+*.out
+
+# Go build cache (лучше оставить вне git)
+# (Docker и go сам себе управляют кешем)
+# /go/pkg/mod/  <-- не клади в репо (монтируешь как volume)
+
+# --- Air (live-reload) ---
+.tmp/
+tmp/
+.air.*
+!/.air.toml          # конфиг трекаем
+**/tmp/
+**/.air.local
+
+# --- Env / локальные секреты ---
+.env
+**/.env
+*.env.local
+*.env.development
+*.env.production
+
+# --- Docker / Compose ---
+# Локальные данные и артефакты контейнеров
+var/
+var/**/*
+docker-data/
+docker-compose.override.yml
+pgdata/
+**/pgdata/
+**/var/media/
+
+# --- Protobuf / Buf ---
+# Если генерируешь в отдельную папку — игнорь её,
+# но не игнорируй *.pb.go, если они нужны для сборки.
+# gen/
+# buf.gen.yaml.lock (если есть лок-артефакт)
+# Note: *.pb.go оставляем в репо
+
+# --- Logs ---
+*.log
+logs/
+**/*.log
+
+# --- Misc cache ---
+.cache/
+**/.cache/
+
+# --- Node (на всякий случай, если появится фронт) ---
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml

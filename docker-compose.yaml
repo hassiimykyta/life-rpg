@@ -1,0 +1,73 @@
+services:
+  gateway:
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: docker/gateway/Dockerfile
+    working_dir: /src/apps/gateway
+    volumes:
+      - .:/src
+      - gopath:/go/pkg/mod
+      - gocache:/root/.cache/go-build
+    env_file:
+      - apps/gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      auth-svc:
+        condition: service_started
+  auth-svc:
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: docker/auth-svc/Dockerfile
+    working_dir: /src/apps/auth-svc
+    volumes:
+      - .:/src
+      - gopath:/go/pkg/mod
+      - gocache:/root/.cache/go-build
+    env_file:
+      - apps/auth-svc/.env
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: life-rpg-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/pg-init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+    
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: life-rpg-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  gopath:
+  gocache:

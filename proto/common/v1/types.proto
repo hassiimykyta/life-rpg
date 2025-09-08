@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package common.v1;
+option go_package = "github.com/hassiimykyta/life-rpg/services/common/v1;commonv1";
+
+message UserId {
+  string value = 1; 
+}
+
+message Email {
+  string value = 1;
+}
+
+message Empty {}
