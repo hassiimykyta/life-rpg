@@ -16,6 +16,7 @@ type loadCaps struct {
 	useJWT     bool
 	useStorage bool
 	useCache   bool
+	useSMTP    bool
 }
 
 type Option func(*loadCaps)
@@ -25,6 +26,7 @@ func WithCORS() Option    { return func(c *loadCaps) { c.useCORS = true } }
 func WithJWT() Option     { return func(c *loadCaps) { c.useJWT = true } }
 func WithStorage() Option { return func(c *loadCaps) { c.useStorage = true } }
 func WithCache() Option   { return func(c *loadCaps) { c.useCache = true } }
+func WithSMTP() Option    { return func(c *loadCaps) { c.useSMTP = true } }
 
 type AppConfig struct {
 	Env             string
@@ -85,6 +87,13 @@ type CacheConfig struct {
 	TLSEnabled   bool
 }
 
+type SMTPConfig struct {
+	Username string
+	Password string
+	Host     string
+	Port     int
+}
+
 type Config struct {
 	App     AppConfig
 	DB      *DBConfig
@@ -92,6 +101,7 @@ type Config struct {
 	JWT     *JWTConfig
 	Storage *StorageConfig
 	Cache   *CacheConfig
+	SMTP    *SMTPConfig
 }
 
 func (c *Config) Validate(cap loadCaps) error {
@@ -210,6 +220,15 @@ func Load(opts ...Option) (*Config, error) {
 			DialTimeout:  5 * time.Second,
 			ReadTimeout:  2 * time.Second,
 			WriteTimeout: 2 * time.Second,
+		}
+	}
+
+	if caps.useSMTP {
+		cfg.SMTP = &SMTPConfig{
+			Host:     helpers.GetEnv("SMTP_HOST", "mailpit"),
+			Port:     helpers.MustInt(helpers.GetEnv("SMTP_PORT", "1025"), 1025),
+			Username: helpers.GetEnv("SMTP_USERNAME", "root"),
+			Password: helpers.GetEnv("SMTP_PASSWORD", "root"),
 		}
 	}
 

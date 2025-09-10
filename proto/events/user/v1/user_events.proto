@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package events.user.v1;
+option go_package = "github.com/hassiimykyta/life-rpg/services/events/user/v1;usereventsv1";
+
+message UserRegistered {
+  string event     = 1; 
+  string user_id   = 2;
+  string email     = 3;
+  string username  = 4;
+  int64  occurred_at = 5; 
+}
