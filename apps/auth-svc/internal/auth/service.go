@@ -2,30 +2,50 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/hassiimykyta/life-rpg/apps/auth-svc/internal/models"
 	"github.com/hassiimykyta/life-rpg/apps/auth-svc/internal/repo"
 	"github.com/hassiimykyta/life-rpg/apps/auth-svc/internal/security/password"
+	"github.com/hassiimykyta/life-rpg/pkg/kafka"
 	"github.com/hassiimykyta/life-rpg/pkg/ulid"
 	authv1 "github.com/hassiimykyta/life-rpg/services/auth/v1"
+	usereventsv1 "github.com/hassiimykyta/life-rpg/services/events/user/v1"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type Service struct {
 	authv1.UnimplementedAuthServiceServer
-	repo *repo.IdentityRepo
-	hash password.Hasher
-	ids  *ulid.ULIDGenerator
+	repo  *repo.IdentityRepo
+	hash  password.Hasher
+	ids   *ulid.ULIDGenerator
+	kafka *kafka.ProducerFactory
 }
 
-func New(r *repo.IdentityRepo, h password.Hasher, g *ulid.ULIDGenerator) *Service {
-	return &Service{repo: r, hash: h, ids: g}
+func New(r *repo.IdentityRepo, h password.Hasher, g *ulid.ULIDGenerator, kf *kafka.ProducerFactory) *Service {
+	return &Service{repo: r, hash: h, ids: g, kafka: kf}
 }
 
 func normIdentifier(ide string) string {
 	return strings.TrimSpace(strings.ToLower(ide))
+}
+
+func (s *Service) publishUserRegistered(ctx context.Context, id, email, username string) {
+	evt := &usereventsv1.UserRegistered{
+		Event:      "user.registered",
+		UserId:     id,
+		Email:      email,
+		Username:   username,
+		OccurredAt: time.Now().Unix(),
+	}
+	b, _ := json.Marshal(evt)
+	p := s.kafka.Get("user.registered")
+	_ = p.Send(ctx, []byte(id), b)
+
 }
 
 func (s *Service) Register(ctx context.Context, in *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
@@ -56,6 +76,8 @@ func (s *Service) Register(ctx context.Context, in *authv1.RegisterRequest) (*au
 	if err != nil {
 		return nil, status.Error(codes.Internal, "create identity failed")
 	}
+
+	s.publishUserRegistered(ctx, id, email, username)
 
 	return &authv1.RegisterResponse{
 		UserId: id,

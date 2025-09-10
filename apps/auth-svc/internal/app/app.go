@@ -11,6 +11,7 @@ import (
 	"github.com/hassiimykyta/life-rpg/apps/auth-svc/internal/security/password"
 	"github.com/hassiimykyta/life-rpg/pkg/config"
 	"github.com/hassiimykyta/life-rpg/pkg/db"
+	"github.com/hassiimykyta/life-rpg/pkg/kafka"
 	"github.com/hassiimykyta/life-rpg/pkg/ulid"
 	authv1 "github.com/hassiimykyta/life-rpg/services/auth/v1"
 	"google.golang.org/grpc"
@@ -18,17 +19,23 @@ import (
 )
 
 type App struct {
-	cfg  *config.Config
-	db   *db.Conn
-	grpc *grpc.Server
-	lis  net.Listener
+	cfg   *config.Config
+	db    *db.Conn
+	grpc  *grpc.Server
+	lis   net.Listener
+	kafka *kafka.ProducerFactory
 }
 
 func New() (*App, error) {
-	cfg, err := config.Load(config.WithDB())
+	cfg, err := config.Load(config.WithDB(), config.WithJWT())
 	if err != nil {
 		return nil, err
 	}
+
+	producer := kafka.NewProducerFactory(kafka.ProducerFactoryConfig{
+		Brokers: []string{"kafka:9092"},
+	})
+	defer producer.Close()
 
 	conn, err := db.Open(db.Options{
 		DSN:           cfg.DB.DSN,
@@ -50,7 +57,7 @@ func New() (*App, error) {
 	idgen := ulid.NewULIDGenerator()
 	hasher := password.Bcrypt{}
 
-	svc := auth.New(repository, hasher, idgen)
+	svc := auth.New(repository, hasher, idgen, producer)
 
 	s := grpc.NewServer()
 	authv1.RegisterAuthServiceServer(s, svc)
@@ -61,10 +68,11 @@ func New() (*App, error) {
 	}
 
 	return &App{
-		cfg:  cfg,
-		db:   conn,
-		grpc: s,
-		lis:  lis,
+		cfg:   cfg,
+		db:    conn,
+		grpc:  s,
+		lis:   lis,
+		kafka: producer,
 	}, nil
 
 }

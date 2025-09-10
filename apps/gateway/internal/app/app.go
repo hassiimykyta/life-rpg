@@ -42,7 +42,6 @@ func initRouter(cfg *config.Config, cli *clients.Clients, jwtMgr *jwt.Manager) *
 }
 
 func New() (*App, error) {
-	// Gateway нужен CORS и JWT (для мидлварей/хендлеров)
 	cfg, err := config.Load(config.WithCORS(), config.WithJWT())
 	if err != nil {
 		return nil, err
